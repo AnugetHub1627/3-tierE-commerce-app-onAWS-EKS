@@ -10,7 +10,21 @@ terraform {
     }
   }
 }
+# Automatically fetches the latest official Canonical Ubuntu 22.04 LTS x86_64 AMI for ap-south-1
+data "aws_ami" "ubuntu_22_04" {
+  most_recent = true
+  owners      = ["303613132528"]
 
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
 # ==============================================================================
 # 1. NETWORK TOPOLOGY (Multi-AZ VPC for EKS/Kubeadm Integration)
 # ==============================================================================
@@ -190,7 +204,7 @@ resource "aws_iam_instance_profile" "k8s_profile" {
 # 4. K8S CONTROL PLANE / MASTER NODE (c7i-flex.large in Public Subnet)
 # ==============================================================================
 resource "aws_instance" "master" {
-  ami                    = "ami-03f4fa4574efb9720" 
+  ami                    = data.aws_ami.ubuntu_22_04.id     # will fetched recent version of ubuntu
   instance_type          = "c7i-flex.large"        
   subnet_id              = aws_subnet.mtec_pub1a.id
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
@@ -273,7 +287,7 @@ resource "aws_instance" "master" {
 # ==============================================================================
 resource "aws_instance" "workers" {
   count                  = 3
-  ami                    = "ami-03f4fa4574efb9720" 
+  ami                    = data.aws_ami.ubuntu_22_04.id
   instance_type          = "t3.small"              
   subnet_id              = count.index % 2 == 0 ? aws_subnet.mtec_pvt1a.id : aws_subnet.mtec_pvt1b.id
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
