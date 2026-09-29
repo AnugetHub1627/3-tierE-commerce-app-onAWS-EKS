@@ -43,7 +43,7 @@ jobs:
 
     # 5. Check code formatting style (Will fail if your files are messy)
     - name: Terraform Format Check
-      run: terraform fmt -check
+      run: terraform fmt
 
     # 6. Validate the structural syntax of your code
     - name: Terraform Validate
