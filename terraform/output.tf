@@ -8,11 +8,6 @@ output "vpc_id" {
 # ==============================================================================
 # 6. MANAGEMENT INTERFACE OUTPUTS
 # ==============================================================================
-output "master_public_ip" {
-  description = "Administrative Public IP address of the Control Plane Master"
-  value       = aws_instance.master.public_ip
-}
-
 
 output "public_subnets" {
   description = "List containing IDs of all provisioned public subnets"
