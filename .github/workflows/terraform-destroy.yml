@@ -1,0 +1,33 @@
+name: "Terraform Destroy"
+
+on:
+  workflow_dispatch: # This line adds the manual trigger button in GitHub UI
+
+jobs:
+  terraform-destroy:
+    name: "Exectute Terraform Destroy"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.5.7 # Match your current working terraform version
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-south-1 # Matches your VPC's region from earlier logs
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ./terraform # Switch this path if your main.tf is inside another folder
+
+    - name: Terraform Destroy
+      run: terraform destroy -auto-approve -input=false
+      working-directory: ./terraform # Switch this path if your main.tf is inside another folder
