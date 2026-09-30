@@ -205,7 +205,7 @@ resource "aws_iam_instance_profile" "k8s_profile" {
 # 4. K8S CONTROL PLANE / MASTER NODE (c7i-flex.large in Public Subnet)
 # ==============================================================================
 resource "aws_instance" "master" {
-  ami                    = data.aws_ami.ubuntu_22_04.id     # will fetched recent version of ubuntu
+  ami                    = data.aws_ami.ubuntu_22_04.id
   instance_type          = "c7i-flex.large"        
   subnet_id              = aws_subnet.mtec_pub1a.id
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
@@ -221,22 +221,25 @@ resource "aws_instance" "master" {
     set -e
     exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/log) 2>&1
     echo "================ STARTING K8S MASTER SETUP ================"
+
     # 1. Disable swap memory
     swapoff -a
     sed -i '/swap/d' /etc/fstab
+
     # 2. Configure Kernel Network Modules & IP Forwarding
     modprobe overlay
     modprobe br_netfilter
-    cat <<EOF | tee /etc/modules-load.d/k8s.conf
+    cat <<EOT | tee /etc/modules-load.d/k8s.conf
     overlay
     br_netfilter
-    EOF
-    cat <<EOF | tee /etc/sysctl.d/k8s.conf
+    EOT
+    cat <<EOT | tee /etc/sysctl.d/k8s.conf
     net.bridge.bridge-nf-call-iptables  = 1
     net.bridge.bridge-nf-call-ip6tables = 1
     net.ipv4.ip_forward                 = 1
-    EOF
+    EOT
     sysctl --system
+
     # 3. Install and configure containerd runtime natively
     apt-get update && apt-get install -y containerd
     mkdir -p /etc/containerd
@@ -244,6 +247,7 @@ resource "aws_instance" "master" {
     sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
     systemctl restart containerd
     systemctl enable containerd
+
     # 4. Download Official Standalone Kubernetes v1.31 Binaries
     cd ~
     wget -O kubectl https://k8s.io
@@ -251,8 +255,9 @@ resource "aws_instance" "master" {
     wget -O kubelet https://k8s.io
     chmod +x kubectl kubeadm kubelet
     mv kubectl kubeadm kubelet /usr/local/bin/
+
     # 5. Create the systemd Service Profiles for kubelet
-    cat <<EOF | tee /etc/systemd/system/kubelet.service
+    cat <<EOT | tee /etc/systemd/system/kubelet.service
     [Unit]
     Description=kubelet: The Kubernetes Node Agent
     Documentation=https://kubernetes.io
@@ -265,30 +270,34 @@ resource "aws_instance" "master" {
     RestartSec=10
     [Install]
     WantedBy=multi-user.target
-    EOF
+    EOT
+
     mkdir -p /etc/systemd/system/kubelet.service.d
-    cat <<EOF | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    cat <<EOT | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     [Service]
     EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
     EnvironmentFile=-/etc/default/kubelet
     ExecStart=
     ExecStart=/usr/local/bin/kubelet \$KUBELET_KUBEADM_ARGS \$KUBELET_EXTRA_ARGS
-    EOF
+    EOT
     systemctl daemon-reload
     systemctl enable --now kubelet
+
     # 6. Initialize Master Node Control Plane
     kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket=unix:///var/run/containerd/containerd.sock
+
     # 7. Configure Admin access keys for kubectl
     # For root user
-    mkdir -p $HOME/.kube
-    cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    chown $(id -u):$(id -g) $HOME/.kube/config
+    mkdir -p \$HOME/.kube
+    cp -i /etc/kubernetes/admin.conf \$HOME/.kube/config
+    chown \$(id -u):\$(id -g) \$HOME/.kube/config
+
     # For default ubuntu user
     mkdir -p /home/ubuntu/.kube
     cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
     chown -R ubuntu:ubuntu /home/ubuntu/.kube
     echo "================ K8S MASTER SETUP COMPLETE ================"
-    EOF
+  EOF
 }
 
 # ==============================================================================
@@ -314,22 +323,25 @@ resource "aws_instance" "workers" {
     set -e
     exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/log) 2>&1
     echo "================ STARTING K8S WORKER SETUP ================"
+
     # 1. Disable swap memory
     swapoff -a
     sed -i '/swap/d' /etc/fstab
+
     # 2. Configure Kernel Network Modules & IP Forwarding
     modprobe overlay
     modprobe br_netfilter
-    cat <<EOF | tee /etc/modules-load.d/k8s.conf
+    cat <<EOT | tee /etc/modules-load.d/k8s.conf
     overlay
     br_netfilter
-    EOF
-    cat <<EOF | tee /etc/sysctl.d/k8s.conf
+    EOT
+    cat <<EOT | tee /etc/sysctl.d/k8s.conf
     net.bridge.bridge-nf-call-iptables  = 1
     net.bridge.bridge-nf-call-ip6tables = 1
     net.ipv4.ip_forward                 = 1
-    EOF
+    EOT
     sysctl --system
+
     # 3. Install and configure containerd runtime natively
     apt-get update && apt-get install -y containerd
     mkdir -p /etc/containerd
@@ -337,6 +349,7 @@ resource "aws_instance" "workers" {
     sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
     systemctl restart containerd
     systemctl enable containerd
+
     # 4. Download Official Standalone Kubernetes v1.31 Binaries
     cd ~
     wget -O kubectl https://k8s.io
@@ -344,8 +357,9 @@ resource "aws_instance" "workers" {
     wget -O kubelet https://k8s.io
     chmod +x kubectl kubeadm kubelet
     mv kubectl kubeadm kubelet /usr/local/bin/
+
     # 5. Create the systemd Service Profiles for kubelet
-    cat <<EOF | tee /etc/systemd/system/kubelet.service
+    cat <<EOT | tee /etc/systemd/system/kubelet.service
     [Unit]
     Description=kubelet: The Kubernetes Node Agent
     Documentation=https://kubernetes.io
@@ -358,17 +372,20 @@ resource "aws_instance" "workers" {
     RestartSec=10
     [Install]
     WantedBy=multi-user.target
-    EOF
+    EOT
+
     mkdir -p /etc/systemd/system/kubelet.service.d
-    cat <<EOF | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    cat <<EOT | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     [Service]
     EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
     EnvironmentFile=-/etc/default/kubelet
     ExecStart=
     ExecStart=/usr/local/bin/kubelet \$KUBELET_KUBEADM_ARGS \$KUBELET_EXTRA_ARGS
-    EOF
+    EOT
+
     systemctl daemon-reload
     systemctl enable --now kubelet
     echo "================ K8S WORKER SETUP READY FOR JOIN ================"
-    EOF
+  EOF
 }
+
