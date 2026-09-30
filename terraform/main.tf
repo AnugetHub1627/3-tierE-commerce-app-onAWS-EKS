@@ -13,7 +13,7 @@ terraform {
 # Automatically fetches the latest official Canonical Ubuntu 22.04 LTS x86_64 AMI for ap-south-1
 data "aws_ami" "ubuntu_22_04" {
   most_recent = true
-  owners      = ["303613132528"]
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
