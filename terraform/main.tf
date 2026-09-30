@@ -210,7 +210,7 @@ resource "aws_instance" "master" {
   subnet_id              = aws_subnet.mtec_pub1a.id
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.k8s_profile.name
-  key_name               = "your-mumbai-key-pair"  
+  key_name               = "key_mukesh"  
 
   tags = {
     Name = "k8s-master"
@@ -293,7 +293,7 @@ resource "aws_instance" "workers" {
   subnet_id              = count.index % 2 == 0 ? aws_subnet.mtec_pvt1a.id : aws_subnet.mtec_pvt1b.id
   vpc_security_group_ids = [aws_security_group.k8s_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.k8s_profile.name
-  key_name               = "your-mumbai-key-pair"
+  key_name               = "key_mukesh"
 
   tags = {
     Name = "k8s-worker-${count.index + 1}"
