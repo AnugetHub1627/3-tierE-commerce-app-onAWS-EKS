@@ -20,6 +20,7 @@ resource "aws_vpc" "mtec_vpc" {
 
   tags = {
     Name = var.mtec_vpc_name
+    "kubernetes.io/cluster/mtec-EKS" = "shared"
   }
 }
 
@@ -39,6 +40,8 @@ resource "aws_subnet" "mtec_pub1a" {
 
   tags = {
     Name = var.mtec_pub1a_name
+    "kubernetes.io/cluster/mtec-EKS" = "shared"
+    "kubernetes.io/role/elb"          = "1"
   }
 }
 
@@ -50,6 +53,8 @@ resource "aws_subnet" "mtec_pub1b" {
 
   tags = {
     Name = var.mtec_pub1b_name
+    "kubernetes.io/cluster/mtec-EKS" = "shared"
+    "kubernetes.io/role/elb"          = "1"
   }
 }
 
@@ -60,6 +65,8 @@ resource "aws_subnet" "mtec_pvt1a" {
 
   tags = {
     Name = var.mtec_pvt1a_name
+    "kubernetes.io/cluster/mtec-EKS" = "shared"
+    "kubernetes.io/role/elb"          = "1"
   }
 }
 
@@ -70,6 +77,8 @@ resource "aws_subnet" "mtec_pvt1b" {
 
   tags = {
     Name = var.mtec_pvt1b_name
+    "kubernetes.io/cluster/ci-cd-EKS" = "shared"
+    "kubernetes.io/role/elb"          = "1"
   }
 }
 
@@ -122,107 +131,91 @@ resource "aws_route_table_association" "pvt_1b" {
   subnet_id      = aws_subnet.mtec_pvt1b.id
   route_table_id = aws_route_table.private-rt.id
 }
-
 # ==============================================================================
-# 2. INTERNAL SECURITY GROUP FOR KUBEADM
+# 3. AMAZON EKS CONTROL PLANE RESOURCES
 # ==============================================================================
-resource "aws_security_group" "k8s_sg" {
-  name        = "mtec-kubeadm-cluster-sg"
-  description = "Intra-cluster communications and administrative access boundaries"
-  vpc_id      = aws_vpc.mtec_vpc.id
-
-  ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    self      = true 
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 30000
-    to_port     = 32767
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# ==============================================================================
-# 3. AWS IAM SECURITY ROLES (CORRECTED WORKER INTEGRATION)
-# ==============================================================================
-resource "aws_iam_role" "k8s_role" {
-  name = "mtec-k8s-token-passing-role"
+resource "aws_iam_role" "eks_cluster_role" {
+  name = "devops-eks-cluster-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Action    = "sts:AssumeRole"
       Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" } # REPAIRED CRITICAL SYNTAX ERROR HERE
+      Principal = { Service = "eks.amazonaws.com" }
     }]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ssm_attach" {
-  role       = aws_iam_role.k8s_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+resource "aws_iam_role_policy_attachment" "eks_cluster" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.eks_cluster_role.name
 }
 
-resource "aws_iam_instance_profile" "k8s_profile" {
-  name = "mtec-k8s-cluster-profile"
-  role = aws_iam_role.k8s_role.name
-}
+resource "aws_eks_cluster" "mtec-EKS" {
+  name     = "mtec-EKS"
+  role_arn = aws_iam_role.eks_cluster_role.arn
 
-# ==============================================================================
-# 4. K8S CONTROL PLANE / MASTER NODE (c7i-flex.large in Public Subnet)
-# ==============================================================================
-resource "aws_instance" "master" {
-  ami                    = data.aws_ami.ubuntu_22_04.id
-  instance_type          = "c7i-flex.large"        
-  subnet_id              = aws_subnet.mtec_pub1a.id
-  vpc_security_group_ids = [aws_security_group.k8s_sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.k8s_profile.name
-  key_name               = "key_mukesh"  
-
-  tags = {
-    Name = "k8s-master"
-  }
-  user_data = templatefile("${path.module}/master_script.sh", {})
-}
-
-  
-# ==============================================================================
-# 5. K8S WORKER NODES (RESTORED MISSING CODE ENGINE HOOK)
-# ==============================================================================
-resource "aws_instance" "workers" {
-  count                  = 3
-  ami                    = data.aws_ami.ubuntu_22_04.id
-  instance_type          = "t3.small"              
-  subnet_id              = count.index % 2 == 0 ? aws_subnet.mtec_pvt1a.id : aws_subnet.mtec_pvt1b.id
-  vpc_security_group_ids = [aws_security_group.k8s_sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.k8s_profile.name
-  key_name               = "key_mukesh"
-
-  tags = {
-    Name = "k8s-worker-${count.index + 1}"
+  vpc_config {
+    subnet_ids = [
+      aws_subnet.mtec_pub1a.id,
+      aws_subnet.mtec_pub1b.id,
+      aws_subnet.mtec_pvt1a.id,
+      aws_subnet.mtec_pvt1b.id
+    ]
   }
 
-  depends_on = [aws_instance.master]
-  
-  user_data = templatefile("${path.module}/worker_script.sh", {})
-  
+  depends_on = [aws_iam_role_policy_attachment.eks_cluster]
 }
 
+
+# ==============================================================================
+# 4. AMAZON EKS MANAGED NODE GROUP
+# ==============================================================================
+resource "aws_iam_role" "eks_node_role" {
+  name = "devops-eks-node-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_worker" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = aws_iam_role.eks_node_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cni" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_node_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_registry" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_node_role.name
+}
+
+resource "aws_eks_node_group" "nodes" {
+  cluster_name    = aws_eks_cluster.mtec-EKS.name
+  node_group_name = "mtec-microservice-nodes"
+  node_role_arn   = aws_iam_role.eks_node_role.arn
+  subnet_ids      = [aws_subnet.mtec_pvt1a.id, aws_subnet.mtec_pvt1b.id]
+  instance_types  = ["m7i-flex.large"]
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 3
+    min_size     = 1
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_worker,
+    aws_iam_role_policy_attachment.eks_cni,
+    aws_iam_role_policy_attachment.eks_registry,
+  ]
+}
