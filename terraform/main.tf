@@ -10,24 +10,9 @@ terraform {
     }
   }
 }
-# Automatically fetches the latest official Canonical Ubuntu 22.04 LTS x86_64 AMI for ap-south-1
-data "aws_ami" "ubuntu_22_04" {
-  most_recent = true
-  owners      = ["099720109477"]
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
 
 # ==============================================================================
-# 1. NETWORK TOPOLOGY (Multi-AZ VPC for EKS/Kubeadm Integration)
+# 1. NETWORK TOPOLOGY (Multi-AZ VPC for EKS)
 # ==============================================================================
 resource "aws_vpc" "mtec_vpc" {
   cidr_block           = var.mtec_vpc_cidr
