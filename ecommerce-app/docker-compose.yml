@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # --- DATABASE TIER ---
+  mysql-db:
+    build: ./database
+    container_name: ecommerce-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ecommerce
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+
+  # --- BACKEND TIER ---
+  backend-api:
+    build: ./backend
+    container_name: ecommerce-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=mysql-db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=ecommerce
+      - PORT=5000
+    depends_on:
+      - mysql-db
+
+  # --- FRONTEND TIER ---
+  frontend-ui:
+    build: ./frontend
+    container_name: ecommerce-frontend
+    ports:
+      - "80:80"
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:5000
+    depends_on:
+      - backend-api
+
+volumes:
+  db-data:
+
+~
+~
+~
+~
+~
+
