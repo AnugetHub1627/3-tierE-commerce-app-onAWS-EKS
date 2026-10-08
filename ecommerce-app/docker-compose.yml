@@ -40,7 +40,4 @@ services:
       - backend-api
 
 volumes:
-  db-data:
-
-
-
+  db-data: {}
