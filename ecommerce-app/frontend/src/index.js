@@ -1,19 +1,14 @@
-
-
-# Generate a boilerplate foundational index.js file
-cat << 'EOF' > src/index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-const App = () => {
+function App() {
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', textAlign: 'center' }}>
+    <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'Arial, sans-serif' }}>
       <h1>🛒 3-Tier E-Commerce App</h1>
-      <p>Frontend environment has successfully initialized!</p>
-      <small>Connected to locally hosted architecture endpoints.</small>
+      <p>Frontend environment has successfully initialized locally!</p>
     </div>
   );
-};
+}
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -21,5 +16,4 @@ root.render(
     <App />
   </React.StrictMode>
 );
-EOF
 
