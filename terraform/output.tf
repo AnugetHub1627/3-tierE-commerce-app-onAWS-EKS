@@ -13,31 +13,17 @@ output "public_subnets" {
   description = "List containing IDs of all provisioned public subnets"
   value       = [aws_subnet.mtec_pub1a.id, aws_subnet.mtec_pub1b.id]
 }
-# ==============================================================================
-# TERMINAL ACCESS & MANAGEMENT OUTPUTS
-# ==============================================================================
-
-output "master_public_ip" {
-  description = "The public IP address of your K8s Master Node. Use this to configure your local kubectl or to SSH directly into the cluster control plane."
-  value       = aws_instance.master.public_ip
+output "rds_endpoint" {
+  description = "Copy this database address and paste it into your backend deployment file"
+  value       = aws_db_instance.mtec_database.endpoint
 }
 
-output "master_ssh_command" {
-  description = "Run this exact command in your terminal to SSH straight into your Kubernetes Master Node."
-  value       = "ssh -i 'your-mumbai-key-pair.pem' ubuntu@${aws_instance.master.public_ip}"
+output "backend_ecr_url" {
+  description = "Copy this exact URL and paste it into your backend-deployment.yaml image field"
+  value       = aws_ecr_repository.backend_repo.repository_url
 }
 
-output "master_private_ip" {
-  description = "The internal AWS Private IP of your Master Control Plane."
-  value       = aws_instance.master.private_ip
-}
-
-output "worker_nodes_private_ips" {
-  description = "The internal AWS Private IPs assigned to your 3 Worker Nodes inside the Private Subnets."
-  value       = aws_instance.workers[*].private_ip
-}
-
-output "cluster_validation_command" {
-  description = "Once logged into your Master node, run this command to watch your nodes join the cluster dynamically in real-time."
-  value       = "watch -n2 kubectl get nodes -o wide"
+output "frontend_ecr_url" {
+  description = "Copy this exact URL and paste it into your frontend-deployment.yaml image field"
+  value       = aws_ecr_repository.frontend_repo.repository_url
 }
