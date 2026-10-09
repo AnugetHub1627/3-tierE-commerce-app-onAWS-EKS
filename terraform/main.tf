@@ -1,4 +1,3 @@
-#teste te
 provider "aws" {
   region = "ap-south-1"
 }
@@ -19,7 +18,7 @@ resource "aws_vpc" "mtec_vpc" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = var.mtec_vpc_name
+    Name                             = var.mtec_vpc_name
     "kubernetes.io/cluster/mtec-EKS" = "shared"
   }
 }
@@ -39,9 +38,9 @@ resource "aws_subnet" "mtec_pub1a" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = var.mtec_pub1a_name
+    Name                             = var.mtec_pub1a_name
     "kubernetes.io/cluster/mtec-EKS" = "shared"
-    "kubernetes.io/role/elb"          = "1"
+    "kubernetes.io/role/elb"          = "1" # Correct for public-facing ALBs
   }
 }
 
@@ -52,9 +51,9 @@ resource "aws_subnet" "mtec_pub1b" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = var.mtec_pub1b_name
+    Name                             = var.mtec_pub1b_name
     "kubernetes.io/cluster/mtec-EKS" = "shared"
-    "kubernetes.io/role/elb"          = "1"
+    "kubernetes.io/role/elb"          = "1" # Correct for public-facing ALBs
   }
 }
 
@@ -64,9 +63,9 @@ resource "aws_subnet" "mtec_pvt1a" {
   availability_zone = "ap-south-1a"
 
   tags = {
-    Name = var.mtec_pvt1a_name
+    Name                             = var.mtec_pvt1a_name
     "kubernetes.io/cluster/mtec-EKS" = "shared"
-    "kubernetes.io/role/elb"          = "1"
+    "kubernetes.io/role/internal-elb" = "1" # FIX: For internal load balancers
   }
 }
 
@@ -76,9 +75,9 @@ resource "aws_subnet" "mtec_pvt1b" {
   availability_zone = "ap-south-1b"
 
   tags = {
-    Name = var.mtec_pvt1b_name
-    "kubernetes.io/cluster/ci-cd-EKS" = "shared"
-    "kubernetes.io/role/elb"          = "1"
+    Name                             = var.mtec_pvt1b_name
+    "kubernetes.io/cluster/mtec-EKS" = "shared" # FIX: Changed from ci-cd-EKS to mtec-EKS
+    "kubernetes.io/role/internal-elb" = "1" # FIX: For internal load balancers
   }
 }
 
@@ -131,6 +130,7 @@ resource "aws_route_table_association" "pvt_1b" {
   subnet_id      = aws_subnet.mtec_pvt1b.id
   route_table_id = aws_route_table.private-rt.id
 }
+
 # ==============================================================================
 # 3. AMAZON EKS CONTROL PLANE RESOURCES
 # ==============================================================================
@@ -167,7 +167,6 @@ resource "aws_eks_cluster" "mtec-EKS" {
 
   depends_on = [aws_iam_role_policy_attachment.eks_cluster]
 }
-
 
 # ==============================================================================
 # 4. AMAZON EKS MANAGED NODE GROUP
@@ -219,3 +218,50 @@ resource "aws_eks_node_group" "nodes" {
     aws_iam_role_policy_attachment.eks_registry,
   ]
 }
+# ==============================================================================
+# 4. ISOLATED DATABASE TIER (AWS RDS MySQL)
+# ==============================================================================
+resource "aws_security_group" "db_sg" {
+  name        = "mtec-database-sg"
+  description = "Allow inbound traffic only from EKS cluster worker nodes"
+  vpc_id      = aws_vpc.mtec_vpc.id
+
+  ingress {
+    description     = "MySQL access from EKS nodes"
+    from_port       = 3306 # MySQL standard port
+    to_port         = 3306 
+    protocol        = "tcp"
+    security_groups = [aws_eks_cluster.mtec-EKS.vpc_config.cluster_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_db_subnet_group" "mtec_db_subnets" {
+  name       = "mtec-db-subnet-group"
+  subnet_ids = [aws_subnet.mtec_pvt1a.id, aws_subnet.mtec_pvt1b.id]
+
+  tags = {
+    Name = "mtec-db-subnet-group"
+  }
+}
+
+resource "aws_db_instance" "mtec_database" {
+  allocated_storage      = 20
+  max_allocated_storage  = 50
+  db_name                = "ecommerce" # Matches your 'CREATE DATABASE ecommerce'
+  engine                 = "mysql"     # Configured for MySQL
+  engine_version         = "8.0"       # Stable MySQL version
+  instance_class         = "db.t3.micro"
+  username               = "dbadmin"
+  password               = "LearningSecurePassword123!"
+  db_subnet_group_name   = aws_db_subnet_group.mtec_db_subnets.name
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
+  skip_final_snapshot    = true
+}
+
