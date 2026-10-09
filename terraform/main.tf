@@ -265,3 +265,18 @@ resource "aws_db_instance" "mtec_database" {
   skip_final_snapshot    = true
 }
 
+# ==============================================================================
+# 5. AMAZON CONTAINER REGISTRIES (ECR)
+# ==============================================================================
+resource "aws_ecr_repository" "backend_repo" {
+  name                 = "ecommerce-backend"
+  image_tag_mutability = "MUTABLE"
+  force_destroy        = true # Allows rapid clean-up when you delete your infrastructure
+}
+
+resource "aws_ecr_repository" "frontend_repo" {
+  name                 = "ecommerce-frontend"
+  image_tag_mutability = "MUTABLE"
+  force_destroy        = true
+}
+
