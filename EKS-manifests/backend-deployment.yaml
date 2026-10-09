@@ -17,7 +17,7 @@ spec:
       containers:
       - name: backend-app
         # Replace this with your actual AWS ECR repository URI for the node backend
-        image: <YOUR_AWS_ACCOUNT_ID>://
+        image: //amazonaws.com
         ports:
         - containerPort: 5000 # The port your Node.js app listens on (e.g., 5000 or 3000)
         env:
