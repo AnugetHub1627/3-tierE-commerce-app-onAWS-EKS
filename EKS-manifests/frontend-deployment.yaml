@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecommerce-frontend
+  labels:
+    app: ecommerce-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ecommerce-frontend
+  template:
+    metadata:
+      labels:
+        app: ecommerce-frontend
+    spec:
+      containers:
+      - name: frontend-app
+        # Your exact account number and ECR registry address are already structured below:
+        image: ://amazonaws.com
+        ports:
+        - containerPort: 80 # The port your Frontend web server listens on (e.g., React/Nginx uses 80)
+        env:
+        # EXPLANATION: This tells your frontend how to talk to your Node.js backend.
+        # Kubernetes has an internal DNS, so your frontend can connect using the backend service name.
+        - name: REACT_APP_BACKEND_URL
+          value: "http://backend-service:80"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  annotations:
+    # EXPLANATION: This annotation tells the AWS Load Balancer Controller to automatically
+    # spin up an AWS Application Load Balancer (ALB) linked to your public subnets.
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+spec:
+  selector:
+    app: ecommerce-frontend
+  ports:
+  - protocol: TCP
+    port: 80        # The port open to the public internet
+    targetPort: 80  # Routes internet traffic straight into port 80 of your frontend container
+  type: LoadBalancer # Exposes your application outside of the cluster to the real world
