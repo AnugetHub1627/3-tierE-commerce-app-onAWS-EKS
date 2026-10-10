@@ -233,7 +233,7 @@ resource "aws_security_group" "db_sg" {
     from_port       = 3306 # MySQL standard port
     to_port         = 3306 
     protocol        = "tcp"
-    security_groups = [aws_eks_cluster.mtec-EKS.vpc_config.cluster_security_group_id]
+    security_groups = [aws_eks_cluster.mtec-EKS.vpc_config[0].cluster_security_group_id]
   }
 
   egress {
@@ -273,13 +273,13 @@ resource "aws_db_instance" "mtec_database" {
 resource "aws_ecr_repository" "backend_repo" {
   name                 = "ecommerce-backend"
   image_tag_mutability = "MUTABLE"
-  force_destroy        = true # Allows rapid clean-up when you delete your infrastructure
+ 
 }
 
 resource "aws_ecr_repository" "frontend_repo" {
   name                 = "ecommerce-frontend"
   image_tag_mutability = "MUTABLE"
-  force_destroy        = true
+  
 }
 # ==============================================================================
 # 6. OIDC PROVIDER (Required for IAM Roles for Service Accounts / IRSA)
