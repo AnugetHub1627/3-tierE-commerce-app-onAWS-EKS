@@ -6,8 +6,7 @@ on:
       - main
     # FIX: Triggers on any application configuration or infrastructure change
     paths:
-      - 'backend/**'
-      - 'frontend/**'
+      - 'ecommerce-app/**'
 
 env:
   AWS_REGION: "ap-south-1" 
