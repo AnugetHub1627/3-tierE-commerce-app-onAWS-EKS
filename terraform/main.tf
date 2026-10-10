@@ -341,7 +341,7 @@ resource "aws_iam_role_policy_attachment" "aws_lb_controller" {
 # 8. HELM INSTALLATION OF THE AWS LOAD BALANCER CONTROLLER
 # ==============================================================================
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = aws_eks_cluster.mtec-EKS.endpoint
     cluster_ca_certificate = base64decode(aws_eks_cluster.mtec-EKS.certificate_authority[0].data)
 
