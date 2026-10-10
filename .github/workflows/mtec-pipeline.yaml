@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'ecommerce-app/**'
 
 env:
   AWS_REGION: ap-south-1 # Adjusted to Mumbai data center based on your project requirements
