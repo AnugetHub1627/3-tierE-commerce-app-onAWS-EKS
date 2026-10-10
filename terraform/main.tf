@@ -281,4 +281,105 @@ resource "aws_ecr_repository" "frontend_repo" {
   image_tag_mutability = "MUTABLE"
   force_destroy        = true
 }
+# ==============================================================================
+# 6. OIDC PROVIDER (Required for IAM Roles for Service Accounts / IRSA)
+# ==============================================================================
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["://amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer
+}
+
+# ==============================================================================
+# 7. IAM ROLE & POLICY FOR AWS LOAD BALANCER CONTROLLER
+# ==============================================================================
+# Download the official AWS Load Balancer Controller IAM Policy
+data "http" "aws_lb_controller_policy" {
+  url = "https://githubusercontent.com"
+}
+
+resource "aws_iam_policy" "aws_lb_controller" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  path        = "/"
+  description = "Permissions required by the AWS Load Balancer Controller pod"
+  policy      = data.http.aws_lb_controller_policy.response_body
+}
+
+resource "aws_iam_role" "aws_lb_controller" {
+  name = "mtec-aws-load-balancer-controller"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AuthorizedService = "urn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "aws_lb_controller" {
+  policy_arn = aws_iam_policy.aws_lb_controller.arn
+  role       = aws_iam_role.aws_lb_controller.name
+}
+
+# ==============================================================================
+# 8. HELM INSTALLATION OF THE AWS LOAD BALANCER CONTROLLER
+# ==============================================================================
+provider "helm" {
+  kubernetes {
+    host                   = aws_eks_cluster.mtec-EKS.endpoint
+    cluster_ca_certificate = base64decode(aws_eks_cluster.mtec-EKS.certificate_authority[0].data)
+
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.mtec-EKS.name]
+      command     = "aws"
+    }
+  }
+}
+
+resource "helm_release" "aws_lb_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://github.io"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  set {
+    name  = "clusterName"
+    value = aws_eks_cluster.mtec-EKS.name
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.aws_lb_controller.arn
+  }
+
+  depends_on = [aws_eks_node_group.nodes]
+}
+
 
