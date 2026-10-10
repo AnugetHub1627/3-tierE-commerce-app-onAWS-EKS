@@ -297,18 +297,16 @@ resource "aws_iam_openid_connect_provider" "eks" {
 # ==============================================================================
 # 7. IAM ROLE & POLICY FOR AWS LOAD BALANCER CONTROLLER
 # ==============================================================================
-# Download the official AWS Load Balancer Controller IAM Policy
-data "http" "aws_lb_controller_policy" {
-  url = "https://githubusercontent.com"
-}
 
+# 1. Tells Terraform to create a policy utilizing your separate JSON file
 resource "aws_iam_policy" "aws_lb_controller" {
   name        = "AWSLoadBalancerControllerIAMPolicy"
   path        = "/"
   description = "Permissions required by the AWS Load Balancer Controller pod"
-  policy      = data.http.aws_lb_controller_policy.response_body
+  policy      = file("${path.module}/iam_lb_policy.json")
 }
 
+# 2. Defines the secure trust role boundary linking EKS to AWS
 resource "aws_iam_role" "aws_lb_controller" {
   name = "mtec-aws-load-balancer-controller"
 
@@ -318,13 +316,12 @@ resource "aws_iam_role" "aws_lb_controller" {
       {
         Effect = "Allow"
         Principal = {
-          AuthorizedService = "urn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
           Federated = aws_iam_openid_connect_provider.eks.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+            "${replace(aws_eks_cluster.mtec-EKS.identity.oidc.issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
           }
         }
       }
@@ -332,10 +329,12 @@ resource "aws_iam_role" "aws_lb_controller" {
   })
 }
 
+# 3. Securely binds the role and policy together
 resource "aws_iam_role_policy_attachment" "aws_lb_controller" {
   policy_arn = aws_iam_policy.aws_lb_controller.arn
   role       = aws_iam_role.aws_lb_controller.name
 }
+
 
 # ==============================================================================
 # 8. HELM INSTALLATION OF THE AWS LOAD BALANCER CONTROLLER
