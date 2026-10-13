@@ -46,7 +46,7 @@ jobs:
 
       - name: Terraform Core Workflow
         run: |
-          terraform init
+          terraform init -upgrade
           terraform fmt
           terraform plan
           terraform destroy -auto-approve
