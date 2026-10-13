@@ -354,7 +354,7 @@ provider "helm" {
 
 resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
-  repository = "https://github.io" # FIX: Sourced true official AWS charts repo location
+  repository = "https://github.io" # FIX: Update this line exactly
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
 
@@ -365,7 +365,7 @@ resource "helm_release" "aws_lb_controller" {
     },
     {
       name  = "serviceAccount.create"
-      value = "false" # Set to false if managed elsewhere, but true here creates it dynamically
+      value = "true" # Ensure this matches your architecture setup
     },
     {
       name  = "serviceAccount.name"
