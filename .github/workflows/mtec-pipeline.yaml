@@ -52,7 +52,7 @@ jobs:
           terraform init -upgrade
           terraform fmt
           terraform plan
-          terraform destroy -auto-approve
+          terraform apply -auto-approve
 
       - name: Extract Database Endpoint
         id: tf-output
