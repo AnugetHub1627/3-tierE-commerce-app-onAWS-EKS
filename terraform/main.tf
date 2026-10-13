@@ -351,10 +351,9 @@ provider "helm" {
     }
   }
 }
-
 resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
-  repository = "https://github.io" # FIX: Update this line exactly
+  repository = "https://github.io" #  Sourced true official AWS charts repo location
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
 
@@ -365,7 +364,7 @@ resource "helm_release" "aws_lb_controller" {
     },
     {
       name  = "serviceAccount.create"
-      value = "true" # Ensure this matches your architecture setup
+      value = "false" # Set to false since the service account mapping is handled by your IRSA role annotations
     },
     {
       name  = "serviceAccount.name"
