@@ -1,4 +1,3 @@
-#official AWS Load Balancer Controller permissions block
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -25,15 +24,16 @@
                 "ec2:DescribeVpcPeeringConnections",
                 "ec2:DescribeSubnets",
                 "ec2:DescribeSecurityGroups",
-                "ec2:DescribeNetworkInterfaces",
                 "ec2:DescribeInstances",
-                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeNetworkInterfaces",
                 "ec2:DescribeTags",
+                "ec2:DescribeTransitGatewayVpcAttachments",
+                "ec2:DescribeGatewayRouteTables",
                 "elasticloadbalancing:DescribeLoadBalancers",
                 "elasticloadbalancing:DescribeLoadBalancerAttributes",
                 "elasticloadbalancing:DescribeListeners",
-                "elasticloadbalancing:DescribeListenerAttributes",
-                "elasticloadbalancing:DescribeRules",
+                "elasticloadbalancing:DescribeListenerCertificates",
+                "elasticloadbalancing:DescribeSSLPolicies",
                 "elasticloadbalancing:DescribeTargetGroups",
                 "elasticloadbalancing:DescribeTargetGroupAttributes",
                 "elasticloadbalancing:DescribeTargetHealth",
@@ -44,23 +44,23 @@
         {
             "Effect": "Allow",
             "Action": [
-                "cognito-idp:DescribeUserPoolClient",
+                "cognito-idp:DescribeUserPoolClient"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "acm:ListCertificates",
-                "acm:DescribeCertificate",
+                "acm:DescribeCertificate"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "iam:ListServerCertificates",
-                "iam:GetServerCertificate",
-                "waf-regional:GetWebACL",
-                "waf-regional:GetWebACLForResource",
-                "waf-regional:AssociateWebACL",
-                "waf-regional:DisassociateWebACL",
-                "wafv2:GetWebACL",
-                "wafv2:GetWebACLForResource",
-                "wafv2:AssociateWebACL",
-                "wafv2:DisassociateWebACL",
-                "shield:GetSubscriptionState",
-                "shield:DescribeProtection",
-                "shield:CreateProtection",
-                "shield:DeleteProtection"
+                "iam:GetServerCertificate"
             ],
             "Resource": "*"
         },
@@ -84,7 +84,7 @@
             "Action": [
                 "ec2:CreateTags"
             ],
-            "Resource": "*",
+            "Resource": "arn:aws:ec2:*:*:security-group/*",
             "Condition": {
                 "StringEquals": {
                     "ec2:CreateAction": "CreateSecurityGroup"
@@ -97,14 +97,30 @@
         {
             "Effect": "Allow",
             "Action": [
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+            ],
+            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Condition": {
+                "Null": {
+                    "ec2:RequestTag/elbv2.k8s.aws/cluster": "true",
+                    "ec2:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "ec2:AuthorizeSecurityGroupIngress",
+                "ec2:AuthorizeSecurityGroupEgress",
                 "ec2:RevokeSecurityGroupIngress",
+                "ec2:RevokeSecurityGroupEgress",
                 "ec2:DeleteSecurityGroup"
             ],
             "Resource": "*",
             "Condition": {
                 "Null": {
-                    "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                    "ec2:ResourceTag/elbv2.k8s.aws/cluster": "false"
                 }
             }
         },
@@ -112,14 +128,22 @@
             "Effect": "Allow",
             "Action": [
                 "elasticloadbalancing:CreateLoadBalancer",
-                "elasticloadbalancing:CreateListener"
+                "elasticloadbalancing:CreateTargetGroup"
             ],
-            "Resource": "*"
+            "Resource": "*",
+            "Condition": {
+                "Null": {
+                    "ec2:RequestTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
         },
         {
             "Effect": "Allow",
             "Action": [
-                "elasticloadbalancing:CreateRule"
+                "elasticloadbalancing:CreateListener",
+                "elasticloadbalancing:DeleteListener",
+                "elasticloadbalancing:CreateRule",
+                "elasticloadbalancing:DeleteRule"
             ],
             "Resource": "*"
         },
@@ -130,10 +154,16 @@
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
                 "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
-            ]
+                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*",
+                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+            ],
+            "Condition": {
+                "Null": {
+                    "elasticloadbalancing:RequestTag/elbv2.k8s.aws/cluster": "true",
+                    "elasticloadbalancing:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                }
+            }
         },
         {
             "Effect": "Allow",
@@ -152,18 +182,17 @@
             "Effect": "Allow",
             "Action": [
                 "elasticloadbalancing:ModifyLoadBalancerAttributes",
-                "elasticloadbalancing:ModifyTargetGroupAttributes",
                 "elasticloadbalancing:SetIpAddressType",
                 "elasticloadbalancing:SetSecurityGroups",
                 "elasticloadbalancing:SetSubnets",
                 "elasticloadbalancing:DeleteLoadBalancer",
-                "elasticloadbalancing:DeleteListener",
-                "elasticloadbalancing:ModifyListenerAttributes"
+                "elasticloadbalancing:ModifyTargetGroupAttributes",
+                "elasticloadbalancing:DeleteTargetGroup"
             ],
             "Resource": "*",
             "Condition": {
                 "Null": {
-                    "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+                    "elasticloadbalancing:ResourceTag/elbv2.k8s.aws/cluster": "false"
                 }
             }
         },
@@ -179,10 +208,7 @@
             "Effect": "Allow",
             "Action": [
                 "elasticloadbalancing:SetWebAcl",
-                "elasticloadbalancing:ModifyListener",
-                "elasticloadbalancing:AddListenerCertificates",
-                "elasticloadbalancing:RemoveListenerCertificates",
-                "elasticloadbalancing:ModifyRule"
+                "modify-security-group-rules"
             ],
             "Resource": "*"
         }
