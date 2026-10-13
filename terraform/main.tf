@@ -357,8 +357,9 @@ provider "helm" {
 }
 resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
-  repository = "https://github.io" #  Sourced true official AWS charts repo location
+  repository = "https://aws.github.io/eks-charts" #  Sourced true official AWS charts repo location
   chart      = "aws-load-balancer-controller"
+  version    = "1.7.2"
   namespace  = "kube-system"
 
   set = [
