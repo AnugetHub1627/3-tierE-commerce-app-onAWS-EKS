@@ -307,6 +307,10 @@ resource "aws_iam_policy" "aws_lb_controller" {
 }
 
 # 2. Defines the secure trust role boundary linking EKS to AWS
+locals {
+  # Clean the issuer string safely at the local evaluation level first
+  oidc_provider_url = replace(aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer, "https://", "")
+}
 resource "aws_iam_role" "aws_lb_controller" {
   name = "mtec-aws-load-balancer-controller"
 
@@ -322,7 +326,7 @@ resource "aws_iam_role" "aws_lb_controller" {
         Condition = {
           StringEquals = {
             # FIX: Added required structural index constraints [0] to match valid resource exports
-            "${replace(aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+            "${local.oidc_provider_url}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
           }
         }
       }
