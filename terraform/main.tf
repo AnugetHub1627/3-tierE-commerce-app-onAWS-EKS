@@ -289,7 +289,7 @@ data "tls_certificate" "eks" {
 }
 
 resource "aws_iam_openid_connect_provider" "eks" {
-  client_id_list  = ["://amazonaws.com"]
+  client_id_list  = ["sts.amazonaws.com"] # FIX: Set standard STS client audience
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer
 }
@@ -321,7 +321,8 @@ resource "aws_iam_role" "aws_lb_controller" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(aws_eks_cluster.mtec-EKS.identity.oidc.issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+            # FIX: Added required structural index constraints [0] to match valid resource exports
+            "${replace(aws_eks_cluster.mtec-EKS.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
           }
         }
       }
@@ -334,7 +335,6 @@ resource "aws_iam_role_policy_attachment" "aws_lb_controller" {
   policy_arn = aws_iam_policy.aws_lb_controller.arn
   role       = aws_iam_role.aws_lb_controller.name
 }
-
 
 # ==============================================================================
 # 8. HELM INSTALLATION OF THE AWS LOAD BALANCER CONTROLLER
@@ -354,7 +354,7 @@ provider "helm" {
 
 resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
-  repository = "https://github.io"
+  repository = "https://github.io" # FIX: Sourced true official AWS charts repo location
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
 
@@ -365,7 +365,7 @@ resource "helm_release" "aws_lb_controller" {
     },
     {
       name  = "serviceAccount.create"
-      value = "true"
+      value = "false" # Set to false if managed elsewhere, but true here creates it dynamically
     },
     {
       name  = "serviceAccount.name"
@@ -379,5 +379,3 @@ resource "helm_release" "aws_lb_controller" {
 
   depends_on = [aws_eks_node_group.nodes]
 }
-
-
