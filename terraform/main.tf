@@ -361,6 +361,9 @@ resource "helm_release" "aws_lb_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.7.2"
   namespace  = "kube-system"
+  force_update    = true
+  cleanup_on_fail = true
+  recreate_pods   = true
 
   set = [
     {
