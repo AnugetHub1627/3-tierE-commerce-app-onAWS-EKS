@@ -9,7 +9,7 @@
             "Resource": "*",
             "Condition": {
                 "StringEquals": {
-                    "iam:AWSServiceName": "://amazonaws.com"
+                    "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
                 }
             }
         },
@@ -208,7 +208,7 @@
             "Effect": "Allow",
             "Action": [
                 "elasticloadbalancing:SetWebAcl",
-                "modify-security-group-rules"
+                "ec2:ModifySecurityGroupRules"
             ],
             "Resource": "*"
         }
