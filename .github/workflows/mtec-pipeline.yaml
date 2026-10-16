@@ -40,6 +40,13 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: Update Kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name mtec-EKS --region ap-south-1
+
+      - name: Install AWS Load Balancer Controller CRDs
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml    
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
