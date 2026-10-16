@@ -357,10 +357,11 @@ provider "helm" {
 }
 resource "helm_release" "aws_lb_controller" {
   name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts" #  Sourced true official AWS charts repo location
+  repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   version    = "1.7.2"
   namespace  = "kube-system"
+
   force_update  = true
   recreate_pods = true
 
@@ -371,7 +372,7 @@ resource "helm_release" "aws_lb_controller" {
     },
     {
       name  = "serviceAccount.create"
-      value = "false" # Set to false since the service account mapping is handled by your IRSA role annotations
+      value = "true"
     },
     {
       name  = "serviceAccount.name"
@@ -383,5 +384,8 @@ resource "helm_release" "aws_lb_controller" {
     }
   ]
 
-  depends_on = [aws_eks_node_group.nodes]
+  depends_on = [
+    aws_eks_node_group.nodes,
+    aws_iam_role.aws_lb_controller
+  ]
 }
