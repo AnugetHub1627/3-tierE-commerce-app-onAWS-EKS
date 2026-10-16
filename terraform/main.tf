@@ -365,6 +365,7 @@ resource "helm_release" "aws_lb_controller" {
   force_update  = true
   recreate_pods = true
   timeout    = 600
+  atomic     = true
 
   set = [
     {
