@@ -69,7 +69,7 @@ jobs:
         if: failure() # This makes sure it only runs if Terraform fails
         run: |
           # 1. Connect GitHub runner to your EKS cluster
-          aws eks update-kubeconfig --region <YOUR_AWS_REGION> --name <YOUR_EKS_CLUSTER_NAME>
+          aws eks update-kubeconfig --region ap-south-1 --name mtec-EKS
           
           # 2. Get the status of the Load Balancer Controller pods
           echo "=== POD STATUS ==="
