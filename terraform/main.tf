@@ -373,6 +373,10 @@ resource "helm_release" "aws_lb_controller" {
       value = aws_eks_cluster.mtec-EKS.name
     },
     {
+    name  = "vpcId"
+    value = aws_vpc.mtec_vpc.id 
+    },
+    {
       name  = "serviceAccount.create"
       value = "true"
     },
