@@ -65,6 +65,23 @@ jobs:
           terraform fmt
           terraform plan
           terraform apply -auto-approve
+      - name: Debug Kubernetes on Failure
+        if: failure() # This makes sure it only runs if Terraform fails
+        run: |
+          # 1. Connect GitHub runner to your EKS cluster
+          aws eks update-kubeconfig --region <YOUR_AWS_REGION> --name <YOUR_EKS_CLUSTER_NAME>
+          
+          # 2. Get the status of the Load Balancer Controller pods
+          echo "=== POD STATUS ==="
+          kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+          
+          # 3. Get detailed lifecycle events for the deployment
+          echo "=== DEPLOYMENT DETAILS ==="
+          kubectl describe deployment aws-load-balancer-controller -n kube-system
+          
+          # 4. Print the actual error logs from the container
+          echo "=== POD LOGS ==="
+          kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=50 || true
 
       - name: Extract Database Endpoint
         id: tf-output
