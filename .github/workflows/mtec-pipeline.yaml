@@ -127,7 +127,7 @@ jobs:
   # ----------------------------------------------------
   # STAGE 3: Deploy to AWS EKS Cluster
   # ----------------------------------------------------
-    deploy-to-eks:
+  deploy-to-eks:
     name: "Deploy to EKS"
     needs: [terraform, build-and-push]
     runs-on: ubuntu-latest
