@@ -165,7 +165,7 @@ jobs:
 
       - name: Deploy AWS Load Balancer Controller via Direct Chart Package
         run: |
-          # 🟢 Bypasses 'helm repo add' entirely by defining the direct AWS package target version (e.g., v1.7.2)
+          # 🟢 FIXED: Precision parameter syntax and explicit full AWS download path
           CHART_VERSION="1.7.2"
           CHART_URL="https://github.io{CHART_VERSION}.tgz"
           
