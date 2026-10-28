@@ -178,6 +178,18 @@ jobs:
           kubectl apply -f frontend-deployment.yaml
           kubectl apply -f ingress.yaml
 
+      - name: Debug Pod Failure and Fetch Logs
+        if: always() # Forces this step to run even if the pipeline is breaking
+        run: |
+          echo "=== 1. CURRENT POD STATUS ==="
+          kubectl get pods -n default
+          
+          echo "=== 2. DETAILED BACKEND EVENTS ==="
+          kubectl describe deployment/ecommerce-backend
+          
+          echo "=== 3. LIVE CONTAINER LOGS ==="
+          kubectl logs deployment/ecommerce-backend --tail=100 || echo "No logs available yet."    
+
       - name: Verify Kubernetes Deployment Status
         run: |
           echo "Waiting for app rollout..."
