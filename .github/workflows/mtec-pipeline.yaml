@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./k8s # FIX: Pointed to your actual k8s folder path
+        working-directory: ./EKS-manifests # FIX: Pointed to your actual k8s folder path
 
     steps:
       - name: Checkout Code
