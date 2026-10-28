@@ -40,10 +40,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      - name: Update Kubeconfig for EKS
-        run: |
-          #aws eks update-kubeconfig --name mtec-EKS --region ap-south-1
-
+      
       - name: Install AWS Load Balancer Controller CRDs
         run: |
           #kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml    
@@ -161,12 +158,35 @@ jobs:
       - name: Update Kubeconfig for EKS
         run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
-      # FIX: Injects your unique build tag straight into the resource files
+      - name: Install AWS Load Balancer Controller CRDs
+        run: |
+          #kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
+
+      - name: Cleanup Stuck Helm Release
+        run: |
+          helm uninstall aws-load-balancer-controller -n kube-system --no-hooks || true
+          kubectl delete secrets -n kube-system -l owner=helm,name=aws-load-balancer-controller --ignore-not-found=true
+
+      - name: Wait for EKS Cluster to be Active
+        run: |
+          echo "Waiting for mtec-EKS to stabilize..."
+          aws eks wait cluster-active --name mtec-EKS --region ap-south-1
+             
       - name: Update Image Tags in Deployment Manifests
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           sed -i "s|image: .*ecommerce-backend.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}://{{ env.ECR_BACKEND_REPO }}:${{ github.sha }}|g" backend-deployment.yaml
           sed -i "s|image: .*ecommerce-frontend.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}://{{ env.ECR_FRONTEND_REPO }}:${{ github.sha }}|g" frontend-deployment.yaml
+
+      - name: Deploy Application or Helm Release
+        run: |
+          echo "Run your helm upgrade/install or kubectl apply manifests here"
+
+      # 4. Run verification checks
+      - name: Verify Pod Status
+        run: |
+          echo "=== POD STATUS ==="
+          kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
 
       - name: Apply Kubernetes Configurations
         run: |
