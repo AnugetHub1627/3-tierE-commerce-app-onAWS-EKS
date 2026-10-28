@@ -42,7 +42,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Update Kubeconfig for EKS
         run: |
-          aws eks update-kubeconfig --name mtec-EKS --region ap-south-1
+          #aws eks update-kubeconfig --name mtec-EKS --region ap-south-1
 
       - name: Install AWS Load Balancer Controller CRDs
         run: |
