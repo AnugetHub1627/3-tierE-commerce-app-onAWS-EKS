@@ -178,24 +178,27 @@ jobs:
           kubectl apply -f frontend-deployment.yaml
           kubectl apply -f ingress.yaml
 
-      - name: Debug Pod Failure and Fetch Logs
-        if: always() # Forces this step to run even if the pipeline is breaking
+      - name: Buffer for Container Initialization
+        run: sleep 15    
+
+      - name: Extract Diagnostics and Container Logs
         run: |
-          echo "=== 1. CURRENT POD STATUS ==="
+          echo "=== CURRENT POD LIST STATUS ==="
           kubectl get pods -n default
           
-          echo "=== 2. DETAILED BACKEND EVENTS ==="
-          kubectl describe deployment/ecommerce-backend
+          echo "=== CONTAINER STANDARD OUT LOGS ==="
+          # Fetch logs from the deployment layer directly
+          kubectl logs deployment/ecommerce-backend --all-containers=true --tail=50 || true
           
-          echo "=== 3. LIVE CONTAINER LOGS ==="
-          kubectl logs deployment/ecommerce-backend --tail=100 || echo "No logs available yet."    
-
+          echo "=== POD DESCRIPTION EVENTS ==="
+          kubectl describe deployment/ecommerce-backend | grep -A 10 "Events:" || true
+      
       - name: Verify Kubernetes Deployment Status
         run: |
-          echo "Waiting for app rollout..."
-          kubectl rollout status deployment/ecommerce-backend
-          kubectl rollout status deployment/ecommerce-frontend
-
+          echo "Checking application rollout limits..."
+          kubectl rollout status deployment/ecommerce-backend --timeout=30s
+          kubectl rollout status deployment/ecommerce-frontend --timeout=30s
+          
       - name: Verify Load Balancer Pod Status
         run: |
           echo "=== POD STATUS ==="
