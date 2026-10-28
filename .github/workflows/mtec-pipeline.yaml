@@ -163,18 +163,21 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
 
-      - name: Deploy AWS Load Balancer Controller via Helm
+      - name: Deploy AWS Load Balancer Controller via Direct Chart Package
         run: |
-          # 🟢 FIX: Ensure this exact URL string is used
-          helm repo add eks https://github.io
-          helm repo update
+          # 🟢 Bypasses 'helm repo add' entirely by defining the direct AWS package target version (e.g., v1.7.2)
+          CHART_VERSION="1.7.2"
+          CHART_URL="https://github.io{CHART_VERSION}.tgz"
           
-          # Deploy the controller pod layers into the kube-system namespace
-          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+          echo "Installing controller directly from $CHART_URL..."
+          
+          # Deploy the controller using the direct download link 
+          helm upgrade --install aws-load-balancer-controller "$CHART_URL" \
             -n kube-system \
             --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
             --set serviceAccount.create=true \
             --set serviceAccount.name=aws-load-balancer-controller
+
 
       - name: Update Image Tags in Deployment Manifests
         run: |
