@@ -181,7 +181,7 @@ jobs:
 
       - name: Apply Kubernetes Configurations
         run: |
-          kubectl apply -f /EKS-manifests/db-secrets.yaml || true
+          kubectl apply -f /EKS-manifests/db-secret.yaml || true
           kubectl apply -f /EKS-manifests/backend-deployment.yaml
           kubectl apply -f /EKS-manifests/frontend-deployment.yaml
           kubectl apply -f /EKS-manifests/ingress-routing.yaml
