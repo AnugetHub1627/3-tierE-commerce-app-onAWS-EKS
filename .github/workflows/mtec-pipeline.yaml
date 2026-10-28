@@ -166,7 +166,6 @@ jobs:
       - name: Update Image Tags in Deployment Manifests
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          # Fixed curly brace syntax typo and string slash paths
           sed -i "s|image: .*ecommerce-backend.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}://{{ env.ECR_BACKEND_REPO }}:${{ github.sha }}|g" backend-deployment.yaml
           sed -i "s|image: .*ecommerce-frontend.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}://{{ env.ECR_FRONTEND_REPO }}:${{ github.sha }}|g" frontend-deployment.yaml
 
