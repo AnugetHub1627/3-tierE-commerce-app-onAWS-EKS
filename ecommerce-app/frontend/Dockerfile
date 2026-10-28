@@ -4,7 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-ENV CI=false          
+ENV NODE_OPTIONS=--openssl-legacy-provider
+ENV CI=false   
 RUN npm run build
 
 # Step 2: Serve the build files using Nginx (lightweight web server)
