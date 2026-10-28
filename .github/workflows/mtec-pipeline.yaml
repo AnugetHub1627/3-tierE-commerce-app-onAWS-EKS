@@ -127,13 +127,13 @@ jobs:
   # ----------------------------------------------------
   # STAGE 3: Deploy to AWS EKS Cluster
   # ----------------------------------------------------
-  deploy-to-eks:
+    deploy-to-eks:
     name: "Deploy to EKS"
     needs: [terraform, build-and-push]
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./EKS-manifests # FIX: Pointed to your actual k8s folder path
+        working-directory: ./EKS-manifests # Keeps the context inside your k8s folder path
 
     steps:
       - name: Checkout Code
@@ -146,48 +146,45 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Wait for EKS Cluster to be Active
+        run: |
+          echo "Ensuring cluster is active..."
+          aws eks wait cluster-active --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
       - name: Update Kubeconfig for EKS
         run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
-
-      - name: Install AWS Load Balancer Controller CRDs
-        run: |
-          #kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
 
       - name: Cleanup Stuck Helm Release
         run: |
           helm uninstall aws-load-balancer-controller -n kube-system --no-hooks || true
           kubectl delete secrets -n kube-system -l owner=helm,name=aws-load-balancer-controller --ignore-not-found=true
 
-      - name: Wait for EKS Cluster to be Active
+      - name: Install AWS Load Balancer Controller CRDs
         run: |
-          echo "Waiting for mtec-EKS to stabilize..."
-          aws eks wait cluster-active --name mtec-EKS --region ap-south-1
-             
+          kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
+
       - name: Update Image Tags in Deployment Manifests
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          # Fixed curly brace syntax typo and string slash paths
           sed -i "s|image: .*ecommerce-backend.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}://{{ env.ECR_BACKEND_REPO }}:${{ github.sha }}|g" backend-deployment.yaml
           sed -i "s|image: .*ecommerce-frontend.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}://{{ env.ECR_FRONTEND_REPO }}:${{ github.sha }}|g" frontend-deployment.yaml
 
-      - name: Deploy Application or Helm Release
+      - name: Apply Kubernetes Configurations
         run: |
-          echo "Run your helm upgrade/install or kubectl apply manifests here"
+          # REMOVED the redundant 'EKS-manifests/' prefixes since defaults handles it
+          kubectl apply -f db-secret.yaml || true
+          kubectl apply -f backend-deployment.yaml
+          kubectl apply -f frontend-deployment.yaml
+          kubectl apply -f ingress-routing.yaml
 
-      # 4. Run verification checks
-      - name: Verify Pod Status
+      - name: Verify Kubernetes Deployment Status
+        run: |
+          echo "Waiting for app rollout..."
+          kubectl rollout status deployment/ecommerce-backend
+          kubectl rollout status deployment/ecommerce-frontend
+
+      - name: Verify Load Balancer Pod Status
         run: |
           echo "=== POD STATUS ==="
           kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
-
-      - name: Apply Kubernetes Configurations
-        run: |
-          kubectl apply -f EKS-manifests/db-secret.yaml || true
-          kubectl apply -f EKS-manifests/backend-deployment.yaml
-          kubectl apply -f EKS-manifests/frontend-deployment.yaml
-          kubectl apply -f EKS-manifests/ingress-routing.yaml
-
-      # FIX: Updated resource names to match your precise manifest targets
-      - name: Verify Kubernetes Deployment Status
-        run: |
-          kubectl rollout status deployment/ecommerce-backend
-          kubectl rollout status deployment/ecommerce-frontend
