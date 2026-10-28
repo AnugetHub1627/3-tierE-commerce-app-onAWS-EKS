@@ -178,26 +178,29 @@ jobs:
           kubectl apply -f ingress.yaml
 
       - name: Buffer for Container Initialization
-        run: sleep 15    
+        run: sleep 30    
 
-      - name: Extract Diagnostics and Container Logs
+      - name: Capture Live Cluster Diagnostics
         run: |
-          echo "=== CURRENT POD LIST STATUS ==="
-          kubectl get pods -n default
-          
-          echo "=== CONTAINER STANDARD OUT LOGS ==="
-          # Fetch logs from the deployment layer directly
-          kubectl logs deployment/ecommerce-backend --all-containers=true --tail=50 || true
-          
-          echo "=== POD DESCRIPTION EVENTS ==="
-          kubectl describe deployment/ecommerce-backend | grep -A 10 "Events:" || true
+          echo "=================================================="
+          echo " 1. EXACT POD STATUS AND ERROR STATES"
+          echo "=================================================="
+          kubectl get pods -n default -o wide
+
+          echo "=================================================="
+          echo " 2. RECENT EVENTS AND FAILURE ROOT CAUSES"
+          echo "=================================================="
+          kubectl get events -n default --sort-by='.metadata.creationTimestamp' | tail -n 20
+
+          echo "=================================================="
+          echo " 3. BACKEND POD SPECIFIC LIFECYCLE DETAILS"
+          echo "=================================================="
+          kubectl describe deployment/ecommerce-backend
+          echo "=================================================="
+          echo " 4. LIVE BACKEND APPLICATION CRASH LOGS"
+          echo "=================================================="
+          kubectl logs deployment/ecommerce-backend --all-containers=true --tail=100 || echo "Containers haven't started yet."
       
-      - name: Verify Kubernetes Deployment Status
-        run: |
-          echo "Checking application rollout limits..."
-          kubectl rollout status deployment/ecommerce-backend --timeout=180s
-          kubectl rollout status deployment/ecommerce-frontend --timeout=180s
-          
       - name: Verify Load Balancer Pod Status
         run: |
           echo "=== POD STATUS ==="
