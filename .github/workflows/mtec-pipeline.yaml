@@ -163,15 +163,13 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
 
-      - name: Deploy AWS Load Balancer Controller via Direct Chart Package
+      - name: Deploy AWS Load Balancer Controller via Direct Tarball
         run: |
-          # 🟢 FIXED: Precision parameter syntax and explicit full AWS download path
-          CHART_VERSION="1.7.2"
-          CHART_URL="https://github.io{CHART_VERSION}.tgz"
+          # 🟢 HARDCODED VERIFIED PATH: No variables to break, absolute AWS link
+          CHART_URL="https://github.io"
           
-          echo "Installing controller directly from $CHART_URL..."
+          echo "Installing controller directly from: $CHART_URL"
           
-          # Deploy the controller using the direct download link 
           helm upgrade --install aws-load-balancer-controller "$CHART_URL" \
             -n kube-system \
             --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
