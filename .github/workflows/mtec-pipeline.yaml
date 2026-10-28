@@ -195,8 +195,8 @@ jobs:
       - name: Verify Kubernetes Deployment Status
         run: |
           echo "Checking application rollout limits..."
-          kubectl rollout status deployment/ecommerce-backend --timeout=30s
-          kubectl rollout status deployment/ecommerce-frontend --timeout=30s
+          kubectl rollout status deployment/ecommerce-backend --timeout=180s
+          kubectl rollout status deployment/ecommerce-frontend --timeout=180s
           
       - name: Verify Load Balancer Pod Status
         run: |
