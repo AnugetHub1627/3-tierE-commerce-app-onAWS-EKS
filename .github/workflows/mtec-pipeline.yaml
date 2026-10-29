@@ -163,20 +163,26 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
 
-      - name: Deploy AWS Load Balancer Controller via Direct Tarball
+      - name: Install AWS Load Balancer Controller
+        env:
+          AWS_REGION: ap-south-1
+          EKS_CLUSTER_NAME: mtec-EKS
+          ECR_BACKEND_REPO: ecommerce-backend
+          ECR_FRONTEND_REPO: ecommerce-frontend
+          AWS_DEFAULT_REGION: ap-south-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          # 🟢 TRUE HARDCODED ABSOLUTE PATH: Points directly to the chart archive
+          # 🟢 DEFINITIVE FIX: Pointing explicitly to the true AWS Helm archive path
           CHART_TARBALL_URL="https://github.io"
-
+        
           echo "Installing controller directly from tarball: $CHART_TARBALL_URL"
-
+        
           helm upgrade --install aws-load-balancer-controller "$CHART_TARBALL_URL" \
-          -n kube-system \
-          --set clusterName=mtec-EKS \
-          --set serviceAccount.create=true \
-          --set serviceAccount.name=aws-load-balancer-controller
-
-
+            -n kube-system \
+            --set clusterName=mtec-EKS \
+            --set serviceAccount.create=true \
+            --set serviceAccount.name=aws-load-balancer-controller
 
       - name: Update Image Tags in Deployment Manifests
         run: |
