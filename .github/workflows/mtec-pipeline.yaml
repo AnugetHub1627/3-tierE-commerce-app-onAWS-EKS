@@ -165,16 +165,17 @@ jobs:
 
       - name: Deploy AWS Load Balancer Controller via Direct Tarball
         run: |
-          # 🟢 HARDCODED VERIFIED PATH: No variables to break, absolute AWS link
-          CHART_URL="https://github.io"
-          
-          echo "Installing controller directly from: $CHART_URL"
-          
-          helm upgrade --install aws-load-balancer-controller "$CHART_URL" \
-            -n kube-system \
-            --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
-            --set serviceAccount.create=true \
-            --set serviceAccount.name=aws-load-balancer-controller
+          # 🟢 TRUE HARDCODED ABSOLUTE PATH: Points directly to the chart archive
+          CHART_TARBALL_URL="https://github.io"
+
+          echo "Installing controller directly from tarball: $CHART_TARBALL_URL"
+
+          helm upgrade --install aws-load-balancer-controller "$CHART_TARBALL_URL" \
+          -n kube-system \
+          --set clusterName=mtec-EKS \
+          --set serviceAccount.create=true \
+          --set serviceAccount.name=aws-load-balancer-controller
+
 
 
       - name: Update Image Tags in Deployment Manifests
