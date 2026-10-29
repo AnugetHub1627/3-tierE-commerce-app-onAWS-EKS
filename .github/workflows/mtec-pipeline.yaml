@@ -173,7 +173,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          # 🟢 DEFINITIVE FIX: Pointing explicitly to the true AWS Helm archive path
+          # 🟢 CRITICAL: This URL string below must be exactly the .tgz file, NOT github.io
           CHART_TARBALL_URL="https://github.io"
         
           echo "Installing controller directly from tarball: $CHART_TARBALL_URL"
