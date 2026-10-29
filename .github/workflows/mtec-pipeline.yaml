@@ -163,27 +163,6 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml  
 
-      - name: Install AWS Load Balancer Controller
-        env:
-          AWS_REGION: ap-south-1
-          EKS_CLUSTER_NAME: mtec-EKS
-          ECR_BACKEND_REPO: ecommerce-backend
-          ECR_FRONTEND_REPO: ecommerce-frontend
-          AWS_DEFAULT_REGION: ap-south-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          # 🟢 CRITICAL: This URL string below must be exactly the .tgz file, NOT github.io
-          CHART_TARBALL_URL="https://github.io"
-        
-          echo "Installing controller directly from tarball: $CHART_TARBALL_URL"
-        
-          helm upgrade --install aws-load-balancer-controller "$CHART_TARBALL_URL" \
-            -n kube-system \
-            --set clusterName=mtec-EKS \
-            --set serviceAccount.create=true \
-            --set serviceAccount.name=aws-load-balancer-controller
-
       - name: Update Image Tags in Deployment Manifests
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
