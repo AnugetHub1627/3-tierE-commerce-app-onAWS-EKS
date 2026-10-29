@@ -1,0 +1,22 @@
+    - name: Install AWS Load Balancer Controller via Manifests
+      env:
+        AWS_REGION: ap-south-1
+        EKS_CLUSTER_NAME: mtec-EKS
+        AWS_DEFAULT_REGION: ap-south-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        # 1. Download the official, full deployment manifest from AWS
+        curl -Lo v2_11_0_full.yaml https://githubusercontent.com
+
+        # 2. Modify the cluster name inside the manifest to match your EKS cluster
+        sed -i 's/your-cluster-name/mtec-EKS/g' v2_11_0_full.yaml
+
+        # 3. Clean up the built-in ServiceAccount definition from the file 
+        sed -i '/apiVersion: v1/{N;s/apiVersion: v1\nkind: ServiceAccount/&/;};/kind: ServiceAccount/,/---/d' v2_11_0_full.yaml
+
+        # 4. Apply the Custom Resource Definitions (CRDs) directly
+        kubectl apply -k "://github.com"
+
+        # 5. Apply the official controller configuration directly into your cluster
+        kubectl apply -f v2_11_0_full.yaml
