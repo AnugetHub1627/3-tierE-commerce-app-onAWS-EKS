@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: backend-app
-        # FIX: Your exact AWS Account ID formatted into a valid ECR web address URL
+
         image: ://amazonaws.com
         ports:
         - containerPort: 5000 
