@@ -146,6 +146,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+    
+
       - name: Wait for EKS Cluster to be Active
         run: |
           echo "Ensuring cluster is active..."
